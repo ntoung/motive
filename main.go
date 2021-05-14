@@ -1,36 +1,82 @@
 package main
 
 import (
-	"encoding/csv"
-	"fmt"
-	"io"
-	"log"
-	"os"
+	"flag"
+	"net/http"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/ant0ine/go-json-rest/rest"
+)
+
+var (
+	configFile = flag.String("conf", "config.toml", "path to toml config")
 )
 
 func main() {
-	csvfile, err := os.Open("./docs/Sample Data/motive_api_sample_data_customer_reviews.csv")
+	flag.Parse()
+	err := loadConfig(*configFile)
 	if err != nil {
-		log.Fatalln("Couldn't open the csv file", err)
+		log.Fatalf("Could not load config file: %s\n", *configFile)
 	}
 
-	r := csv.NewReader(csvfile)
+	log.Println("Starting Go React Boilerplate Server")
 
-	for i := 0; i < 10; i++ {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Index: %s Text: %s", record[0], record[1])
-	}
+	// serve website
+	go fileServer(config.WebRoot, config.FileServerPort)
+
+	// start the api
+	apiServer(config.APIPort)
 }
 
-// func NewReader(r io.Reader) *Reader {
-// 	return &Reader{
-// 		Comma: ',',
-// 		r:     bufio.NewReader(r),
-// 	}
-// }
+// fileServer serves static files from the react client's dist folder
+func fileServer(path string, addr string) {
+	fs := http.FileServer(http.Dir(path))
+	http.Handle("/", fs)
+
+	log.Println("File Server Listening on " + addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+// apiServer sets up API middleware, routes, and starts the API server.
+func apiServer(addr string) {
+	api := rest.NewApi()
+	api.Use(rest.DefaultDevStack...)
+
+	// cross origin middleware allows us to use different ports FileServer and API
+	api.Use(&rest.CorsMiddleware{
+		RejectNonCorsRequests: false,
+		OriginValidator: func(origin string, request *rest.Request) bool {
+			return true // origin == "http://127.0.0.1"
+		},
+		AllowedMethods:                []string{"GET", "POST", "PUT", "OPTIONS", "DELETE"},
+		AllowedHeaders:                []string{"Accept", "Content-Type", "Authorization", "Origin"},
+		AccessControlAllowCredentials: true,
+		AccessControlMaxAge:           3600,
+	})
+
+	// route configurations
+	router, err := rest.MakeRouter(
+		rest.Get("/", getApps),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	api.SetApp(router)
+
+	log.Printf("Api Server Listening on %s\n", addr)
+	log.Fatal(http.ListenAndServe(addr, api.MakeHandler()))
+}
+
+// Route Handlers
+
+// application represents a web application
+type application struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// getApps handler returns the list of applications we <3
+func getApps(w rest.ResponseWriter, r *rest.Request) {
+	w.WriteJson("hello")
+}
