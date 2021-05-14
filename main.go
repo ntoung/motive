@@ -27,10 +27,3 @@ func main() {
 		fmt.Printf("Index: %s Text: %s", record[0], record[1])
 	}
 }
-
-// func NewReader(r io.Reader) *Reader {
-// 	return &Reader{
-// 		Comma: ',',
-// 		r:     bufio.NewReader(r),
-// 	}
-// }
