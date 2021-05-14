@@ -1,0 +1,4 @@
+fileserver_port = ":8081"
+api_port = ":8080"
+
+webroot = "client/dist"

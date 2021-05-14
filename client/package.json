@@ -1,0 +1,32 @@
+{
+  "name": "motive",
+  "version": "1.0.0",
+  "description": "React Client for Motive Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/ntoung/motive"
+  },
+  "author": "Nathan Toung",
+  "license": "ISC",
+  "devDependencies": {
+    "babelify": "^10.0.0",
+    "reactify": "^1.1.1",
+    "uglifyify": "^5.0.2"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "browser-cookies": "^1.0.8",
+    "clipboard": "^1.5.9",
+    "core-js": "^3.12.1",
+    "data-structures": "^1.4.2",
+    "events": "^1.1.0",
+    "notifyjs": "^1.2.8",
+    "react": "^0.14.2",
+    "react-dom": "^0.14.2",
+    "react-tools": "^0.13.3"
+  }
+}
