@@ -1,4 +1,4 @@
-fileserver_port = ":8081"
+fileserver_port = ":3000"
 api_port = ":8080"
 
-webroot = "client/dist"
+webroot = "client/build"
