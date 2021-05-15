@@ -9,13 +9,13 @@ import (
 )
 
 func main() {
-	csvfile, err := os.Open("./docs/Sample Data/motive_api_sample_data_customer_reviews.csv")
+	csvfile, err := os.Open("../docs/Sample Data/motive_api_sample_data_customer_reviews.csv")
 	if err != nil {
 		log.Fatalln("Couldn't open the csv file", err)
 	}
 
 	r := csv.NewReader(csvfile)
-
+	//for {
 	for i := 0; i < 10; i++ {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -24,6 +24,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("Index: %s Text: %s", record[0], record[1])
+		fmt.Printf("Index: %s Text: %s \n", record[0], record[1])
 	}
 }
