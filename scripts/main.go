@@ -11,36 +11,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
 )
 
-func main() {
-	csvfile, err := os.Open("../docs/Sample Data/motive_api_sample_data_customer_reviews.csv")
-	if err != nil {
-		log.Fatalln("Couldn't open the csv file", err)
-	}
-
-	r := csv.NewReader(csvfile)
-	//for {
-	for i := 0; i < 10; i++ {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		MakeRequest(record[1])
-		// fmt.Printf("Index: %s Text: %s \n", record[0], record[1])
-	}
-}
-
 type ScorePostMessage struct {
-	Correlation_id string `json:"correlation_id"`
-	Domain         string `json:"domain"`
-	Data_channel   string `json:"data_channel"`
-	Models         []string
-	Industry       string `json:"industry"`
-	Prompt         string `json:"prompt"`
+	Correlation_id string   `json:"correlation_id"`
+	Domain         string   `json:"domain"`
+	Data_channel   string   `json:"data_channel"`
+	Models         []string `json:"models"`
+	Industry       string   `json:"industry"`
+	Prompt         string   `json:"prompt"`
 	Themes         map[string][]string
 	Documents      []Document `json:"documents"`
 }
@@ -50,16 +30,8 @@ type Document struct {
 	Text        string `json:"text"`
 }
 
-// type Client struct {
-// 	Transport     RoundTripper
-// 	CheckRedirect func(req *Request, via []*Request) error
-// 	Jar           CookieJar
-// 	Timeout       time.Duration
-// }
-
-func MakeRequest(document string) {
-
-	message := ScorePostMessage{
+func MakePostScoreRequestPayload(document string) ScorePostMessage {
+	return ScorePostMessage{
 		Correlation_id: "string",
 		Domain:         "other",
 		Data_channel:   "other",
@@ -80,38 +52,10 @@ func MakeRequest(document string) {
 			},
 		},
 	}
-
-	// message := []byte(`{
-	// 	"correlation_id": "string",
-	// 	"domain": "other",
-	// 	"data_channel": "other",
-	// 	"models": [
-	// 	  "sentiment",
-	// 	  "emotion"
-	// 	],
-	// 	"industry": "education",
-	// 	"prompt": "string",
-	// 	"themes": {
-	// 	  "property1": [
-	// 		"string"
-	// 	  ],
-	// 	  "property2": [
-	// 		"string"
-	// 	  ]
-	// 	},
-	// 	"documents": [
-	// 	  {
-	// 		"document_id": "abc_123",
-	// 		"text": "I am excited to be scoring this document."
-	// 	  }
-	// 	]
-	//   }`)
-
-	PostScores(message)
-
 }
 
-func PostScores(m ScorePostMessage) {
+func PostScores(document string, ch chan<- string) {
+	payload := MakePostScoreRequestPayload(document)
 	apiUrl := "https://api-data.motivesoftware.com"
 	resource := "/scores/"
 
@@ -120,13 +64,13 @@ func PostScores(m ScorePostMessage) {
 	urlStr := u.String() // "https://api-data.motivesoftware.com/scores/"
 
 	// Body
-	body, err := json.Marshal(m)
+	body, err := json.Marshal(payload)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	client := &http.Client{}
-	r, _ := http.NewRequest(http.MethodPost, urlStr, bytes.NewBuffer(body)) // URL-encoded payload
+	r, _ := http.NewRequest(http.MethodPost, urlStr, bytes.NewBuffer(body))
 	r.Header.Add("X-API-Key", "AIzaSyCuFkUzhasM1OdOPVq-L0b8HQta7QTCJmU")
 	r.Header.Add("Content-Type", "application/json")
 
@@ -134,9 +78,8 @@ func PostScores(m ScorePostMessage) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	//ch <- fmt.Sprint(string(requestDump))
 	fmt.Println(string(requestDump))
-
-	//fmt.Println(formatrequest.FormatRequest(r))
 
 	// Do and print response
 	resp, _ := client.Do(r)
@@ -147,4 +90,29 @@ func PostScores(m ScorePostMessage) {
 	json.NewDecoder(resp.Body).Decode(&result)
 
 	log.Println(result)
+}
+
+func main() {
+	csvfile, err := os.Open("../docs/Sample Data/motive_api_sample_data_customer_reviews.csv")
+	if err != nil {
+		log.Fatalln("Couldn't open the csv file", err)
+	}
+
+	start := time.Now()
+	ch := make(chan string)
+	r := csv.NewReader(csvfile)
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		go PostScores(record[1], ch)
+	}
+	//fmt.Println(<-ch)
+	fmt.Println("END")
+	fmt.Println(time.Since(start))
 }
